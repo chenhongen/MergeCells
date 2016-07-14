@@ -1,6 +1,0 @@
-﻿[
-{id:1,pid:-1,taskName:"一级",taskNo:"2",_level:"1",isLeaf:false},
-{id:2,pid:1,taskName:"二级",taskNo:"1",_level:"2",isLeaf:true},
-{id:3,pid:-1,taskName:"一级A",taskNo:"4",_level:"1",isLeaf:false},
-{id:4,pid:3,taskName:"二级A",taskNo:"3",_level:"2",isLeaf:true},
-]
