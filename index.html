@@ -195,12 +195,14 @@
             }
 
             // 行列值存在不等情况 or 对角线值不等 返回
-            if(!(isX && isY) || getCellVal(g, j+1, i+1) != getCellVal(g, j, i)) {
+            //if(!(isX && isY) || getCellVal(g, j+1, i+1) != getCellVal(g, j, i)) {
+            if(!(isX || isY)) {
                 return merge;
             }
-
+			
             // 满足条件则：递归
-            return oppositeVal(g, colIndex, rowIndex, i+1, j+1, merge.rowSpan, merge.colSpan, row, col);
+            //return oppositeVal(g, colIndex, rowIndex, i+1, j+1, merge.rowSpan, merge.colSpan, row, col);
+            return oppositeVal(g, colIndex, rowIndex, isY?i+1:i, isX?j+1:j, merge.rowSpan, merge.colSpan, row, col);
         }
 
         // 行方向（即y轴）
