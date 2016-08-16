@@ -51,7 +51,9 @@
 		
 		grid.on("load", function(e){
 			mini.get("container").setHeight($(document).height());
-			mergeCellsByChe(e);
+
+			mergeCells(e);
+
 			// 滚动条同步
 			$('.mini-grid-rows-view').scroll( function() { 
 				$('.mini-grid-rows-view').scrollTop($(this).scrollTop()); 
@@ -59,197 +61,183 @@
 			}); 
 			 
 		});
+		// -------------------------------------------------- 带“##”方法，挪用请重写  -------------------------------------
 		// --------------------------------------------------- 单元格合并方法 begin -------------------------------------
-        // -------------------------------------------------- 带“##”方法，挪用请重写  -------------------------------------
-        // ## 根据坐标(j,i)获取对应值
-        function getCellVal(g, j, i) {
-            return g.getRow(j)["field_"+(i)];
-        }
-
-        // ## 合并单元格
-        function mergeCellsByChe(e) {
-            var g = e.sender;
-            //g.mergeColumns(["field_0","field_1","field_2","field_3","field_4","field_5"]); // 列合并
-
-            // 列数
-            var tempColNum = g.getColumns().length||g.getColumns()[0].columns.length; // 不一样?
-            // 行数
-            var tempRowNum = e.data.length;
-            // 合并数组
-            var merges = [];
-            // 对角线模式可能涵盖XY模式，另存数组将对角数据放后边覆盖XY
-            var mergesOppo = [];
-
-            var xVal = -1; // 横
-            var yVal = -1; // 纵
-            var oVal = -1; // 对角线
-			var tVal = -1; // 上
-			var lVal = -1; // 左
-			var loVal = -1; // 左对角
-
-            for(var k=0; k<tempColNum; k++) {
-                var i = k;
-                for(var j=0; j<tempRowNum; j++) {
-                    var temp = getCellVal(g, j, i);
-                    xVal = i+1<tempColNum?getCellVal(g, j, i+1):-1;
-                    yVal = j+1<tempRowNum?getCellVal(g, j+1, i):-1;
-                    oVal = i+1<tempColNum && j+1<tempRowNum?getCellVal(g, j+1, i+1):-1;
-					
-
-                    //console.log(temp +"-"+ xVal +"-"+ yVal +"-"+ oVal);
-                    // 对角线模式
-                    if(temp == yVal && temp == xVal && temp == oVal) {
-                    //alert(1);
-                        var merge = oppositeVal(g, i, j, i+1, j+1, 2, 2, tempRowNum, tempColNum);
-                        merge.rowIndex = j; // index差一
-                        merge.columnIndex = i;
-                        // x,y方向同时推进
-                        //i = i+merge.colSpan-1;
-                        j = j+merge.rowSpan-1;
-                        // 最新的插入到最前
-                        mergesOppo.splice(0, 0, merge);
-                        //break;
-                    // 行模式(┗ 阶梯模式：列合并行不合)
-                    } else if(temp == yVal) {
-						tVal = j-1<0?-1:getCellVal(g, j-1, i);
-						//lVal = i-1<0?-1:getCellVal(g, j, i-1);
-						loVal = i-1<0||j+1>=tempColNum?-1:getCellVal(g, j+1, i-1);
-
-						if(tVal != temp) {
-					//alert(2);
-							var merge = rowVal(g, i, j+1, 2, tempRowNum, tempColNum);
-							merge.rowIndex = j; // index差一
-							merge.columnIndex = i;
-							merge.colSpan = 1;
-							// x方向推进
-							//j = j+merge.rowSpan-1;
-							merges.splice(0, 0, merge);
-						}
-                    // 列模式( ┓阶梯模式：行合并列不合)
-                    } else if(temp == xVal) {
-						//tVal = j+1<0?-1:getCellVal(g, j+1, i);
-						//loVal = i-1<0||j+1>=tempColNum?-1:getCellVal(g, j+1, i-1);
-						lVal = i-1<0?-1:getCellVal(g, j, i-1);
-
-						if(temp != oVal && temp != yVal && temp != lVal) {
-					//alert(3);
-							var merge = colVal(g, i+1, j, 2, tempRowNum, tempColNum);
-							merge.rowSpan = 1;
-							merge.columnIndex = i;
-							merge.rowIndex = j;
-
-							// y方向推进
-							//i = i+merge.colSpan-1;
-							merges.splice(0, 0, merge);
-						}
-                    }
-                }
-            }
-
-            console.log(mini.encode(merges.concat(mergesOppo)));
-
-            g.mergeCells(merges.concat(mergesOppo)); 
-			//g.mergeCells([{"rowSpan":2,"rowIndex":0,"columnIndex":0,"colSpan":1},{"colSpan":2,"rowSpan":1,"columnIndex":0,"rowIndex":1}]);
-        }
-
-        // 对角线方向
-        function oppositeVal(g, colIndex, rowIndex, i, j, rowSpan, colSpan, row, col) {
-            var merge = {};
-            merge.colSpan = colSpan;
-            merge.rowSpan = rowSpan;
-
-            // 行的各列值相等，则行扩展
-            var isX = true;
-            // 行范围控制
-            if(j+1>row-1) {
-                isX = false;
-            } else {
-                for(var m=colIndex; m <= i; m++) {
-                    if(getCellVal(g, j+1, m) != getCellVal(g, j, i)) {
-                        //return merge;
-                        isX = false;
-                        break;
-                    }
-                }
-            }
-            if(isX) {
-                merge.rowSpan = rowSpan+1;
-            }
-
-            // 列的各行值相等，则列扩展
-            var isY = true;
-            // 列范围控制
-            if(i+1>col-1) {
-                isY = false;
-            } else {
-                for(var n=rowIndex; n <= j; n++) {
-                    if(getCellVal(g, n, i+1) != getCellVal(g, j, i)) {
-                        //return merge;
-                        isY = false;
-                        break;
-                    }
-                }
-            }
-            if(isY) {
-                merge.colSpan = colSpan+1;
-            }
-
-            // 行列值存在不等情况 or 对角线值不等 返回
-            //if(!(isX && isY) || getCellVal(g, j+1, i+1) != getCellVal(g, j, i)) {
-            if(!(isX || isY)) {
-                return merge;
-            }
+		var mergeCells = (function(){
+			var g,     // ## 表格对象
+				g_col, // 列数
+				g_row; // 行数
 			
-            // 满足条件则：递归
-            //return oppositeVal(g, colIndex, rowIndex, i+1, j+1, merge.rowSpan, merge.colSpan, row, col);
-            return oppositeVal(g, colIndex, rowIndex, isY?i+1:i, isX?j+1:j, merge.rowSpan, merge.colSpan, row, col);
-        }
+			// ## 初始值
+			var setGrid = function(e) {
+				g = e.sender;
+				// 列数
+				g_col = g.getColumns().length||g.getColumns()[0].columns.length; //
+				// 行数
+				g_row = e.data.length;
+			};
+			
+			// ## 根据坐标(x,y)获取对应值,从0开始
+			var getCellVal = function(y, x) {
+				return g.getRow(y)["field_"+(x)];
+			};
+			// ## 根据json数组合并单元格
+			var mergeCell = function(arr) {
+				g.mergeCells(arr);
+			}
+			
+			// 对角线方向[初始列标，初始行标，截止列标，截止行标，合并行数，合并列数]
+			var oppositeVal = function(colIndex, rowIndex, i, j, rowSpan, colSpan) {
+				var merge = {
+					colSpan: colSpan,
+					rowSpan: rowSpan,
+					columnIndex: colIndex,
+					rowIndex: rowIndex
+				};
+				
+				// 行的各列值相等，则行扩展
+				var isX = true;
+				// 行范围控制
+				if(j+1 > g_row-1) {
+					isX = false;
+				} else {
+					for(var m=colIndex; m < i; m++) {
+						if(getCellVal(j+1, m) != getCellVal(j, i)) {
+							isX = false;
+							break;
+						}
+					}
+				}
+				if(isX) {
+					merge.rowSpan = rowSpan+1;
+				}
+	
+				// 列的各行值相等，则列扩展
+				var isY = true;
+				// 列范围控制
+				if(i+1 > g_col-1) {
+					isY = false;
+				} else {
+					for(var n=rowIndex; n < j; n++) {
+						if(getCellVal(n, i+1) != getCellVal(j, i)) {
+							//return merge;
+							isY = false;
+							break;
+						}
+					}
+				}
+				if(isY) {
+					merge.colSpan = colSpan+1;
+				}
+	
+				// 行列值存在不等情况 or 对角线值不等 返回
+				if(!(isX && isY) || getCellVal(j+1, i+1) != getCellVal(j, i)) {
+					return merge;
+				}
+	
+				// 满足条件则：递归
+				return oppositeVal(colIndex, rowIndex, i+1, j+1, merge.rowSpan, merge.colSpan);
+			}
+			
+			// 行方向（即y轴）
+			function rowVal(i, j, rowSpan) {
+				var merge = {
+					colSpan: 1,
+					rowSpan: rowSpan,
+					columnIndex: i
+				};
+	
+				// 范围控制
+				if(j+1>g_row-1) {
+					return merge;
+				}
+	
+				// 行值判断
+				if(getCellVal(j+1, i) != getCellVal(j, i)) {
+					return merge;
+				}
+	
+				// 满足2者：递归
+				return rowVal(i, j+1, merge.rowSpan+1);
+			}
 
-        // 行方向（即y轴）
-        function rowVal(g, i, j, rowSpan, row, col) {
-            var merge = {};
-            merge.rowSpan = rowSpan;
+			// 列方向（即x轴）
+			function colVal(i, j, colSpan) {
+				var merge = {
+					colSpan: colSpan,
+					rowSpan: 1,
+					rowIndex: j
+				};
+	
+				// 范围控制
+				if(i+1>g_col-1) {
+					return merge;
+				}
+	
+				// 列值判断
+				if(getCellVal(j, i+1) != getCellVal(j, i)) {
+					return merge;
+				}
+	
+				// 满足2者：递归
+				return colVal(i+1, j, merge.colSpan+1);
+			}
+			
+			
+			return function() {
+				var merges = [],
+					mergesOppo = [];
+					
+				setGrid([].shift.call(arguments));
+				
+				for(var i=0; i<g_col; i++) { // 列循环
+					for(var j=0; j<g_row; j++) { // 行循环
+						var temp = getCellVal(j, i), // curr_val
+							xVal = i+1<g_col?getCellVal(j, i+1):-1, // next_col
+							yVal = j+1<g_row?getCellVal(j+1, i):-1, // next_row
+							oVal = i+1<g_col && j+1<g_row?getCellVal(j+1, i+1):-1; // next_opp
+							
+							//loVal = i-1<0||j+1>=g_col?-1:getCellVal(j+1, i-1); // last_opp
 
-            // 范围控制
-            if(j+1>row-1) {
-                return merge;
-            }
-
-            // 行值判断
-            if(getCellVal(g, j+1, i) != getCellVal(g, j, i)) {
-                return merge;
-            }
-			merge.rowSpan = rowSpan+1;
-
-            // 满足2者：递归
-            return rowVal(g, i, j+1, merge.rowSpan, row, col);
-        }
-
-        // 列方向（即x轴）
-        function colVal(g, i, j, colSpan, row, col) {
-            var merge = {};
-            merge.colSpan = colSpan;
-
-            // 范围控制
-            if(i+1>col-1) {
-                return merge;
-            }
-
-            // 列值判断
-            if(getCellVal(g, j, i+1) != getCellVal(g, j, i)) {
-                return merge;
-            }
-
-			// 阶梯模式┗:行合并不列合并
-			/*if(j-1>=0 && getCellVal(g, j-1, i) == getCellVal(g, j, i)) {
-				return merge;
-			}*/
-            merge.colSpan = colSpan+1;
-
-            // 满足2者：递归
-            return colVal(g, i+1, j, merge.colSpan, row, col);
-        }
-        // --------------------------------------------------- 单元格合并方法 begin -------------------------------------
+						//console.log(temp +"-"+ xVal +"-"+ yVal +"-"+ oVal);
+						// 对角线模式
+						if(temp == yVal && temp == xVal && temp == oVal) {
+							var merge = oppositeVal(i, j, i+1, j+1, 2, 2);
+							// x,y方向同时推进
+							//i = i+merge.colSpan-1;
+							j = j+merge.rowSpan-1;
+							// 最新的插入到最前
+							mergesOppo.splice(0, 0, merge);
+						// 行模式(┗ 阶梯模式：列合并行不合)
+						} else if(temp == yVal) {
+						//alert(1);
+							var tVal = j-1<0?-1:getCellVal(j-1, i); // last_row
+							
+							if(tVal != temp) {
+								var merge = rowVal(i, j+1, 2);
+								merge.rowIndex = j;
+								
+								merges.splice(0, 0, merge);
+							}
+						// 列模式( ┓阶梯模式：行合并列不合)
+						} else if(temp == xVal) {
+						//alert(2);
+							var lVal = i-1<0?-1:getCellVal(j, i-1); // last_col
+							if(temp != oVal && temp != yVal && temp != lVal) {
+								var merge = colVal(i+1, j, 2);
+								merge.columnIndex = i;
+								
+								merges.splice(0, 0, merge);
+							}
+						}
+					}
+				}
+				//console.log(mini.encode(merges.concat(mergesOppo)));
+				mergeCell(merges.concat(mergesOppo));
+				
+			};
+		})();
+        // --------------------------------------------------- 单元格合并方法 end-------------------------------------
     </script>    
  </body>
 </html>
